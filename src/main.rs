@@ -13,9 +13,9 @@ use hpo::Ontology;
 #[tokio::main]
 async fn main() {
     // Overarching variables
-    let csv_url = String::from("./src/data/UdnPatients.csv");
+    let csv_url = String::from("/data/UdnPatients.csv");
     let population = Arc::new(population::create_population(csv_url));
-    let ontology = Arc::new(Ontology::from_binary("bin_hpo_file").unwrap());
+    let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap());
 
     // The "/" path will return a generic greeting showing that the backend is running okay
     let home = path::end().map(|| {
@@ -236,7 +236,7 @@ async fn main() {
 
     //Use the population function to get the population structure from the csv
     let get_population = warp::path!("population").map(|| {
-        let csv_url = String::from("./src/data/UdnPatients.csv");
+        let csv_url = String::from("/data/UdnPatients.csv");
         let population = population::create_population(csv_url);
         let json_population = serde_json::to_string(&population).unwrap();
 
@@ -297,7 +297,9 @@ async fn main() {
         .or(get_population); // "/population"
 
     warp::serve(routes)
-        .run(([127, 0, 0, 1], 8911))
+//Non Production Server change to local host (docker requires the 0.0.0.0)
+//     .run(([127, 0, 0, 1], 8911))
+        .run(([0, 0, 0, 0], 8911))
         .await;
 }
 
@@ -306,7 +308,7 @@ async fn main() {
 //-------------
 
 fn get_db_path() -> String {
-    let db_path = String::from("./src/hpoAssociations/hpo.db");
+    let db_path = String::from("/hpoAssociations/hpo.db");
     db_path
 }
 
