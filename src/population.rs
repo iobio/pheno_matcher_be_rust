@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use csv::Reader;
 use csv::{ReaderBuilder, Error};
 
+#[allow(dead_code)]
 pub fn create_udn_population(csv_url: String) -> HashMap<String, HashMap<String, String>> {
     //This will take a csv file and create a hashmap where the numId is the key and the value is a hashmap of the other attributes
     let mut population: HashMap<String, HashMap<String, String>> = HashMap::new();

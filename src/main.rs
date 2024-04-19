@@ -14,14 +14,13 @@ use hpo::Ontology;
 async fn main() {
     // Overarching variables
     // const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
-    // const ORPA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
-    const UDN_CSV_URL: &str = "./data/UdnPatients.csv"; //development URL
-    //ignore dead code
-    #[allow(dead_code)]
-    const ORPHA_TSV_URL: &str = "./data/ORPHANETessentials.tsv"; //development URL
+    // const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
+    // const UDN_CSV_URL: &str = "./data/UdnPatients.csv"; //Development URL
+    const ORPHA_TSV_URL: &str = "./data/ORPHANETessentials.tsv"; //Development URL
 
-    let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
-
+    // let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
+    let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
+ 
     // let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
     let ontology = Arc::new(Ontology::from_binary("./bin_hpo_file").unwrap()); //Development URL
 
@@ -267,7 +266,7 @@ async fn main() {
         .and(warp::path::param())
         .map({
             let ontology = Arc::clone(&ontology);
-            let population = Arc::clone(&udn_population);
+            let population = Arc::clone(&orpha_population);
 
             move |param: String| {
                 let param = param.replace("%20", "");
