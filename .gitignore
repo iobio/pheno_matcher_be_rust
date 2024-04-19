@@ -25,6 +25,8 @@ dist-ssr
 
 #any folder named UdnPatients
 UdnPatients.csv
+ORPHANETessentials.tsv
+ORPHANETall.tsv
 
 #the target folder
 target/

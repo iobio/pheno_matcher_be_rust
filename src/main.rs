@@ -13,9 +13,18 @@ use hpo::Ontology;
 #[tokio::main]
 async fn main() {
     // Overarching variables
-    let csv_url = String::from("/data/UdnPatients.csv");
-    let population = Arc::new(population::create_population(csv_url));
-    let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap());
+    // const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
+    // const ORPA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
+    const UDN_CSV_URL: &str = "./data/UdnPatients.csv"; //development URL
+    //ignore dead code
+    #[allow(dead_code)]
+    const ORPHA_TSV_URL: &str = "./data/ORPHANETessentials.tsv"; //development URL
+
+    let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
+
+    // let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
+    let ontology = Arc::new(Ontology::from_binary("./bin_hpo_file").unwrap()); //Development URL
+
 
     // The "/" path will return a generic greeting showing that the backend is running okay
     let home = path::end().map(|| {
@@ -236,15 +245,16 @@ async fn main() {
 
     //Use the population function to get the population structure from the csv
     let get_population = warp::path!("population").map(|| {
-        let csv_url = String::from("/data/UdnPatients.csv");
-        let population = population::create_population(csv_url);
-        let json_population = serde_json::to_string(&population).unwrap();
+        // let udn_population = population::create_udn_population(UDN_CSV_URL.to_string());
+        let orpha_population = population::create_orpha_population(ORPHA_TSV_URL.to_string());
+        // let json_population = serde_json::to_string(&udn_population).unwrap();
+        let json_orpha_population = serde_json::to_string(&orpha_population).unwrap();
 
         let response = warp::http::Response::builder()
             .status(StatusCode::OK)
             .header("Access-Control-Allow-Origin", "*")
             .header("Content-Type", "application/json")
-            .body(json_population)  // Convert String directly to Body
+            .body(json_orpha_population)  // Convert String directly to Body
             .unwrap_or_else(|_| warp::http::Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body("Internal server error".into())
@@ -257,7 +267,7 @@ async fn main() {
         .and(warp::path::param())
         .map({
             let ontology = Arc::clone(&ontology);
-            let population = Arc::clone(&population);
+            let population = Arc::clone(&udn_population);
 
             move |param: String| {
                 let param = param.replace("%20", "");
@@ -298,8 +308,8 @@ async fn main() {
 
     warp::serve(routes)
 //Non Production Server change to local host (docker requires the 0.0.0.0)
-//     .run(([127, 0, 0, 1], 8911))
-        .run(([0, 0, 0, 0], 8911))
+    .run(([127, 0, 0, 1], 8911))
+        // .run(([0, 0, 0, 0], 8911))
         .await;
 }
 
