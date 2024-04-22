@@ -14,9 +14,9 @@ use hpo::Ontology;
 async fn main() {
     // Overarching variables
     // const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
-    // const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
+    const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
     // const UDN_CSV_URL: &str = "./data/UdnPatients.csv"; //Development URL
-    const ORPHA_TSV_URL: &str = "./data/ORPHANETessentials.tsv"; //Development URL
+    // const ORPHA_TSV_URL: &str = "./data/ORPHANETessentials.tsv"; //Development URL
 
     // let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
     let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
@@ -307,8 +307,8 @@ async fn main() {
 
     warp::serve(routes)
 //Non Production Server change to local host (docker requires the 0.0.0.0)
-    .run(([127, 0, 0, 1], 8911))
-        // .run(([0, 0, 0, 0], 8911))
+    // .run(([127, 0, 0, 1], 8911))
+        .run(([0, 0, 0, 0], 8911))
         .await;
 }
 
