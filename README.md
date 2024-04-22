@@ -28,3 +28,4 @@ singularity run --bind /username/datafolder:/data docker://emeronlebleu/pheno_ma
 Here we are using a container from the docker hub and running it with singularity. Before we do that however we use the `--bind` flag and specify the originFolder:containerFolder that should contain our main data. 
 
 **NOTE:** the server will expect this containerFolder to be `data` at the root of your container as shown in the example.
+**NOTE:** each new version needs to be built, tagged, and added to the docker hub. On CHPC stop the ongoing singularity container and run again with the new docker container.
