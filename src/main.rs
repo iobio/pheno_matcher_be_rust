@@ -317,8 +317,8 @@ async fn main() {
 //-------------
 
 fn get_db_path() -> String {
-    // let db_path = String::from("/hpoAssociations/hpo.db"); //production
-    let db_path = String::from("./src/hpoAssociations/hpo.db"); //development
+    let db_path = String::from("/hpoAssociations/hpo.db"); //production
+    // let db_path = String::from("./src/hpoAssociations/hpo.db"); //development
     db_path
 }
 
