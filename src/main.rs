@@ -43,11 +43,11 @@ async fn main() {
             Ok(_) => Response::builder()
                 .status(StatusCode::OK)
                 .header("Access-Control-Allow-Origin", "*")
-                .body("db found!"),
-            Err(_) => Response::builder()
+                .body(format!("db found!")),
+            Err(error) => Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .header("Access-Control-Allow-Origin", "*")
-                .body("error: db cannot be found"),
+                .body(format!("db not found error: {}", error)),
         };
         response.unwrap()
     });
@@ -317,7 +317,8 @@ async fn main() {
 //-------------
 
 fn get_db_path() -> String {
-    let db_path = String::from("/hpoAssociations/hpo.db");
+    // let db_path = String::from("/hpoAssociations/hpo.db"); //production
+    let db_path = String::from("./src/hpoAssociations/hpo.db"); //development
     db_path
 }
 
