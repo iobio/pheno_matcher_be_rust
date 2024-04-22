@@ -21,8 +21,8 @@ async fn main() {
     // let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
     let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
  
-    // let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
-    let ontology = Arc::new(Ontology::from_binary("./bin_hpo_file").unwrap()); //Development URL
+    let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
+    // let ontology = Arc::new(Ontology::from_binary("./bin_hpo_file").unwrap()); //Development URL
 
 
     // The "/" path will return a generic greeting showing that the backend is running okay
