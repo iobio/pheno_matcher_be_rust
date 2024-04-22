@@ -27,6 +27,7 @@
 **/secrets.dev.yaml
 **/values.dev.yaml
 /bin
+/data
 /target
 LICENSE
 README.md
