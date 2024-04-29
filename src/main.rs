@@ -14,15 +14,17 @@ use hpo::Ontology;
 async fn main() {
     // Overarching variables
     // const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
-    const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
-    // const UDN_CSV_URL: &str = "./data/UdnPatients.csv"; //Development URL
-    // const ORPHA_TSV_URL: &str = "./data/ORPHANETessentials.tsv"; //Development URL
+    // const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
+    #[allow(dead_code)]
+    const UDN_CSV_URL: &str = "./data/UdnPatients.csv"; //Development URL
+    const ORPHA_TSV_URL: &str = "./data/ORPHANETessentials.tsv"; //Development URL
 
     // let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
     let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
- 
-    let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
-    // let ontology = Arc::new(Ontology::from_binary("./bin_hpo_file").unwrap()); //Development URL
+    let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
+
+    // let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
+    let ontology = Arc::new(Ontology::from_binary("./bin_hpo_file").unwrap()); //Development URL
 
 
     // The "/" path will return a generic greeting showing that the backend is running okay
@@ -243,10 +245,8 @@ async fn main() {
     });
 
     //Use the population function to get the population structure from the csv
-    let get_population = warp::path!("population").map(|| {
-        // let udn_population = population::create_udn_population(UDN_CSV_URL.to_string());
+    let get_orpha_population = warp::path!("orpha_population").map(|| {
         let orpha_population = population::create_orpha_population(ORPHA_TSV_URL.to_string());
-        // let json_population = serde_json::to_string(&udn_population).unwrap();
         let json_orpha_population = serde_json::to_string(&orpha_population).unwrap();
 
         let response = warp::http::Response::builder()
@@ -261,8 +261,53 @@ async fn main() {
         response
     });
 
+    //Use the population function to get the population structure from the csv
+    let get_udn_population = warp::path!("udn_population").map(|| {
+        let udn_population = population::create_udn_population(UDN_CSV_URL.to_string());
+        let json_udn_population = serde_json::to_string(&udn_population).unwrap();
+
+        let response = warp::http::Response::builder()
+            .status(StatusCode::OK)
+            .header("Access-Control-Allow-Origin", "*")
+            .header("Content-Type", "application/json")
+            .body(json_udn_population)  // Convert String directly to Body
+            .unwrap_or_else(|_| warp::http::Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Internal server error".into())
+                .unwrap());
+        response
+    });
+
     // Get a map of all of the similarity scores for a given set of terms
-    let compare = warp::path("compare")
+    let udn_compare = warp::path("compare_udn" )
+        .and(warp::path::param())
+        .map({
+            let ontology = Arc::clone(&ontology);
+            let population = Arc::clone(&udn_population);
+
+            move |param: String| {
+                let param = param.replace("%20", "");
+                let param_string = param.split(",").map(|s| s.to_string()).collect::<Vec<String>>();
+                let param_u32 = param_string.iter().map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect::<Vec<u32>>();
+
+                let return_map = calc_scores::calc_scores(&ontology, param_u32, &population);
+                let return_map = serde_json::to_string(&return_map).unwrap();
+
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Content-Type", "application/json")
+                    .body(warp::hyper::Body::from(return_map))
+                    .unwrap_or_else(|_| warp::http::Response::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body("Internal server error".into())
+                        .unwrap());
+                response
+            }
+    });
+
+    // Get a map of all of the similarity scores for a given set of terms
+    let orpha_compare = warp::path("compare_orpha")
         .and(warp::path::param())
         .map({
             let ontology = Arc::clone(&ontology);
@@ -302,13 +347,15 @@ async fn main() {
         .or(get_genes_from_names) // "/gene/names/{gene_names}" (comma separated)
         .or(get_all_terms_ids) // "/all/terms/ids"
         .or(get_all_terms_names) // "/all/terms/names"
-        .or(compare) // "/compare/{term_ids}" (comma separated)
-        .or(get_population); // "/population"
+        .or(udn_compare) // "/compare/udn/{term_ids}" (comma separated)
+        .or(orpha_compare) // "/compare/orpha/{term_ids}" (comma separated)
+        .or(get_orpha_population) // "/orpha_population"
+        .or(get_udn_population); // "/udn_population"
 
     warp::serve(routes)
 //Non Production Server change to local host (docker requires the 0.0.0.0)
-    // .run(([127, 0, 0, 1], 8911))
-        .run(([0, 0, 0, 0], 8911))
+    .run(([127, 0, 0, 1], 8911))
+        // .run(([0, 0, 0, 0], 8911))
         .await;
 }
 
@@ -317,8 +364,8 @@ async fn main() {
 //-------------
 
 fn get_db_path() -> String {
-    let db_path = String::from("/hpoAssociations/hpo.db"); //production
-    // let db_path = String::from("./src/hpoAssociations/hpo.db"); //development
+    // let db_path = String::from("/hpoAssociations/hpo.db"); //production
+    let db_path = String::from("./src/hpoAssociations/hpo.db"); //development
     db_path
 }
 

@@ -8,14 +8,24 @@ pub fn create_udn_population(csv_url: String) -> HashMap<String, HashMap<String,
     let mut population: HashMap<String, HashMap<String, String>> = HashMap::new();
     //Read the csv file
     let mut reader = Reader::from_path(csv_url).unwrap();
+    let mut id_num = 1;
     //Iterate through the rows
     for result in reader.records() {
         let record = result.unwrap();
         //Create a hashmap for each row
         let mut individual: HashMap<String, String> = HashMap::new();
         //Iterate through the columns
-        individual.insert("ID".to_string(), record[0].to_string());
+        individual.insert("ID".to_string(), format!("UDN:{}", id_num.to_string()));
+
+        id_num += 1;
+
         individual.insert("Dx/Udx".to_string(), record[1].to_string());
+        
+        //if Dx/Udx is not 'Diagnosed' skip the row
+        if individual.get("Dx/Udx").unwrap() != "Diagnosed" {
+            continue;
+        }
+
         //if Genes is NONE, None, or none, then set it to an empty string
         let mut genes = record[2].to_string();
         //remove any periods or empty spaces from the genes
@@ -56,7 +66,7 @@ pub fn create_orpha_population(tsv_url: String) -> HashMap<String, HashMap<Strin
         //Create a hashmap for each row
         let mut individual: HashMap<String, String> = HashMap::new();
         //Iterate through the columns
-        individual.insert("ID".to_string(), record[1].to_string());
+        individual.insert("ID".to_string(), format!("ORPHA:{}", record[1].to_string()));
 
         let dx = "orphanet"; //Orpha doesnt actually have a Dx/Udx column
         individual.insert("Dx/Udx".to_string(), dx.to_string());
