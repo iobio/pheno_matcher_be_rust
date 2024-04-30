@@ -13,18 +13,17 @@ use hpo::Ontology;
 #[tokio::main]
 async fn main() {
     // Overarching variables
-    // const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
-    // const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
+    const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
+    const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
     #[allow(dead_code)]
-    const UDN_CSV_URL: &str = "./data/UdnPatients.csv"; //Development URL
-    const ORPHA_TSV_URL: &str = "./data/ORPHANETessentials.tsv"; //Development URL
+    // const UDN_CSV_URL: &str = "./data/UdnPatients.csv"; //Development URL
+    // const ORPHA_TSV_URL: &str = "./data/ORPHANETessentials.tsv"; //Development URL
 
-    // let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
     let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
     let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
 
-    // let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
-    let ontology = Arc::new(Ontology::from_binary("./bin_hpo_file").unwrap()); //Development URL
+    let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
+    // let ontology = Arc::new(Ontology::from_binary("./bin_hpo_file").unwrap()); //Development URL
 
 
     // The "/" path will return a generic greeting showing that the backend is running okay
@@ -364,8 +363,8 @@ async fn main() {
 //-------------
 
 fn get_db_path() -> String {
-    // let db_path = String::from("/hpoAssociations/hpo.db"); //production
-    let db_path = String::from("./src/hpoAssociations/hpo.db"); //development
+    let db_path = String::from("/hpoAssociations/hpo.db"); //production
+    // let db_path = String::from("./src/hpoAssociations/hpo.db"); //development
     db_path
 }
 
