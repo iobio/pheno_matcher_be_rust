@@ -13,17 +13,21 @@ use hpo::Ontology;
 #[tokio::main]
 async fn main() {
     // Overarching variables
-    const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
-    const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
+    // const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
+    // const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
+    // const DECIPHER_DATA_URL: &str = "/data/DecipherData.tsv"; //Production URL
+
     #[allow(dead_code)]
-    // const UDN_CSV_URL: &str = "./data/UdnPatients.csv"; //Development URL
-    // const ORPHA_TSV_URL: &str = "./data/ORPHANETessentials.tsv"; //Development URL
+    const UDN_CSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/UdnPatients.csv"; //Development URL
+    const ORPHA_TSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/ORPHANETessentials.tsv"; //Development URL
+    const DECIPHER_DATA_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/DecipherData.tsv"; //Development URL
 
-    let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
     let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
+    let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
+    let deciper_population = Arc::new(population::create_deciper_population(DECIPHER_DATA_URL.to_string()));
 
-    let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
-    // let ontology = Arc::new(Ontology::from_binary("./bin_hpo_file").unwrap()); //Development URL
+    // let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
+    let ontology = Arc::new(Ontology::from_binary("/Users/emerson/Documents/Code/pheno_matcher_be_rust/bin_hpo_file").unwrap()); //Development URL
 
 
     // The "/" path will return a generic greeting showing that the backend is running okay
@@ -333,6 +337,34 @@ async fn main() {
             }
     });
 
+    // Get a map of all of the similarity scores for a given set of terms
+    let decipher_compare = warp::path("compare_decipher")
+        .and(warp::path::param())
+        .map({
+            let ontology = Arc::clone(&ontology);
+            let population = Arc::clone(&deciper_population);
+
+            move |param: String| {
+                let param = param.replace("%20", "");
+                let param_string = param.split(",").map(|s| s.to_string()).collect::<Vec<String>>();
+                let param_u32 = param_string.iter().map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect::<Vec<u32>>();
+
+                let return_map = calc_scores::calc_scores(&ontology, param_u32, &population);
+                let return_map = serde_json::to_string(&return_map).unwrap();
+
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Content-Type", "application/json")
+                    .body(warp::hyper::Body::from(return_map))
+                    .unwrap_or_else(|_| warp::http::Response::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body("Internal server error".into())
+                        .unwrap());
+                response
+            }
+    });
+
     //Combine all the routes and serve them
     let routes = home
         .or(check_db) // "/check_db"
@@ -348,6 +380,7 @@ async fn main() {
         .or(get_all_terms_names) // "/all/terms/names"
         .or(udn_compare) // "/compare/udn/{term_ids}" (comma separated)
         .or(orpha_compare) // "/compare/orpha/{term_ids}" (comma separated)
+        .or(decipher_compare) // "/compare/decipher/{term_ids}" (comma separated)
         .or(get_orpha_population) // "/orpha_population"
         .or(get_udn_population); // "/udn_population"
 
@@ -363,8 +396,8 @@ async fn main() {
 //-------------
 
 fn get_db_path() -> String {
-    let db_path = String::from("/hpoAssociations/hpo.db"); //production
-    // let db_path = String::from("./src/hpoAssociations/hpo.db"); //development
+    // let db_path = String::from("/hpoAssociations/hpo.db"); //production
+    let db_path = String::from("/Users/emerson/Documents/Code/pheno_matcher_be_rust/src/hpoAssociations/hpo.db"); //development
     db_path
 }
 
