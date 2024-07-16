@@ -13,14 +13,14 @@ use hpo::Ontology;
 #[tokio::main]
 async fn main() {
     // Overarching variables
-    // const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
-    // const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
-    // const DECIPHER_DATA_URL: &str = "/data/DecipherData.tsv"; //Production URL
+    const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
+    const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
+    const DECIPHER_DATA_URL: &str = "/data/DecipherData.tsv"; //Production URL
 
-    #[allow(dead_code)]
-    const UDN_CSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/UdnPatients.csv"; //Development URL
-    const ORPHA_TSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/ORPHANETessentials.tsv"; //Development URL
-    const DECIPHER_DATA_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/DecipherData.csv"; //Development URL
+    // #[allow(dead_code)]
+    // const UDN_CSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/UdnPatients.csv"; //Development URL
+    // const ORPHA_TSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/ORPHANETessentials.tsv"; //Development URL
+    // const DECIPHER_DATA_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/DecipherData.csv"; //Development URL
 
     let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
     let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
@@ -413,8 +413,8 @@ async fn main() {
 //-------------
 
 fn get_db_path() -> String {
-    // let db_path = String::from("/hpoAssociations/hpo.db"); //production
-    let db_path = String::from("/Users/emerson/Documents/Code/pheno_matcher_be_rust/src/hpoAssociations/hpo.db"); //development
+    let db_path = String::from("/hpoAssociations/hpo.db"); //production
+    // let db_path = String::from("/Users/emerson/Documents/Code/pheno_matcher_be_rust/src/hpoAssociations/hpo.db"); //development
     db_path
 }
 
