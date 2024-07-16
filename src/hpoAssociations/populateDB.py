@@ -3,9 +3,11 @@ import json
 
 genes_to_diseases_url = 'genes_to_disease.txt'
 genes_to_phenotypes_url = 'genes_to_phenotype.txt'
+disease_codes_url = 'disease_names.hpoa'
 
 genes_to_diseases = []
 genes_to_phenotypes = []
+codes_to_diseases = []
 
 genes = []
 diseases = []
@@ -47,14 +49,25 @@ def url_to_list_diseases(url):
     values = [x.split('\t') for x in data[1:]]
     return [(x[-2], x[-1]) for x in values]
 
+#Function takes a url and uses the first two columns to create a list of tuples where the first element is the database_id and the second is the disease_name
+def url_to_list_codes(url):
+    with open(url) as f:
+        data = f.readlines()
+    data = [x.strip() for x in data]
+    values = [x.split('\t') for x in data[1:]]
+    return [(x[0], x[1]) for x in values]
+
 genes_to_diseases = url_to_dict_g2d(genes_to_diseases_url)
 genes_to_phenotypes = url_to_dict_g2p(genes_to_phenotypes_url)
+codes_to_diseases = url_to_list_codes(disease_codes_url)
+
 genes = url_to_list_genes(genes_to_phenotypes_url)
 #remove any duplicate gene tuples
 genes = list(set(genes))
 diseases = url_to_list_diseases(genes_to_diseases_url)
 #remove any duplicate disease tuples
 diseases = list(set(diseases))
+codes_to_diseases = list(set(codes_to_diseases))
 
 # Deserialize JSON
 with open('hpoTerms.json') as f:
@@ -98,7 +111,8 @@ c.executescript('''
 c.executescript('''
     CREATE TABLE Diseases (
         disease_id TEXT PRIMARY KEY,
-        source TEXT
+        source TEXT,
+        disease_name TEXT
     );
 ''')
 
@@ -146,6 +160,14 @@ for item in diseases:
         INSERT INTO Diseases (disease_id, source)
         VALUES (?, ?)
     ''', (item[0], item[1]))
+
+# Insert data into diseases table from codes_to_diseases list of tuples, match the database_id to the disease_id and insert the disease_name into a new column disease_name
+for item in codes_to_diseases:
+    c.execute('''
+        UPDATE Diseases
+        SET disease_name = ?
+        WHERE disease_id = ?
+    ''', (item[1], item[0]))
 
 # Insert data into term_to_gene table from genes_to_phenotypes list of dictionaries
 for item in genes_to_phenotypes:
