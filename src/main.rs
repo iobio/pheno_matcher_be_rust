@@ -20,7 +20,7 @@ async fn main() {
     #[allow(dead_code)]
     const UDN_CSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/UdnPatients.csv"; //Development URL
     const ORPHA_TSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/ORPHANETessentials.tsv"; //Development URL
-    const DECIPHER_DATA_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/DecipherData.tsv"; //Development URL
+    const DECIPHER_DATA_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/DecipherData.csv"; //Development URL
 
     let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
     let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
