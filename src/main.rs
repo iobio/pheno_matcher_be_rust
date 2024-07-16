@@ -281,6 +281,22 @@ async fn main() {
         response
     });
 
+    let get_decipher_population = warp::path!("decipher_population").map(|| {
+        let decipher_population = population::create_deciper_population(DECIPHER_DATA_URL.to_string());
+        let json_decipher_population = serde_json::to_string(&decipher_population).unwrap();
+
+        let response = warp::http::Response::builder()
+            .status(StatusCode::OK)
+            .header("Access-Control-Allow-Origin", "*")
+            .header("Content-Type", "application/json")
+            .body(json_decipher_population)  // Convert String directly to Body
+            .unwrap_or_else(|_| warp::http::Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Internal server error".into())
+                .unwrap());
+        response
+    });
+
     // Get a map of all of the similarity scores for a given set of terms
     let udn_compare = warp::path("compare_udn" )
         .and(warp::path::param())
@@ -382,7 +398,8 @@ async fn main() {
         .or(orpha_compare) // "/compare/orpha/{term_ids}" (comma separated)
         .or(decipher_compare) // "/compare/decipher/{term_ids}" (comma separated)
         .or(get_orpha_population) // "/orpha_population"
-        .or(get_udn_population); // "/udn_population"
+        .or(get_udn_population)// "/udn_population"
+        .or(get_decipher_population); // "/decipher_population"
 
     warp::serve(routes)
 //Non Production Server change to local host (docker requires the 0.0.0.0)
