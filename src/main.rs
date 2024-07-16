@@ -15,7 +15,7 @@ async fn main() {
     // Overarching variables
     const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
     const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
-    const DECIPHER_DATA_URL: &str = "/data/DecipherData.tsv"; //Production URL
+    const DECIPHER_DATA_URL: &str = "/data/DecipherData.csv"; //Production URL
 
     // #[allow(dead_code)]
     // const UDN_CSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/UdnPatients.csv"; //Development URL
@@ -26,8 +26,8 @@ async fn main() {
     let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
     let deciper_population = Arc::new(population::create_deciper_population(DECIPHER_DATA_URL.to_string()));
 
-    // let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
-    let ontology = Arc::new(Ontology::from_binary("/Users/emerson/Documents/Code/pheno_matcher_be_rust/bin_hpo_file").unwrap()); //Development URL
+    let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
+    // let ontology = Arc::new(Ontology::from_binary("/Users/emerson/Documents/Code/pheno_matcher_be_rust/bin_hpo_file").unwrap()); //Development URL
 
 
     // The "/" path will return a generic greeting showing that the backend is running okay
