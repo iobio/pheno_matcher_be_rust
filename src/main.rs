@@ -494,9 +494,10 @@ fn get_genes_from_names(db_path: String, gene_names: Vec<String>) -> Result<Vec<
 fn get_genes_for_term(db_path: String, term_id: String) -> Result<Vec<HashMap<String, String>>> {
     let conn = Connection::open(db_path)?;
     let mut stmt = conn.prepare(r#"
-        SELECT term_to_gene.*, genes.gene_symbol 
+        SELECT term_to_gene.*, genes.gene_symbol, diseases.disease_name
         FROM term_to_gene 
-        LEFT JOIN genes ON term_to_gene.gene_id = genes.gene_id 
+        LEFT JOIN genes ON term_to_gene.gene_id = genes.gene_id
+        JOIN diseases ON term_to_gene.disease_id = diseases.disease_id 
         WHERE term_to_gene.term_id=?"#
     )?;
     
@@ -507,6 +508,7 @@ fn get_genes_for_term(db_path: String, term_id: String) -> Result<Vec<HashMap<St
         gene.insert("frequency".to_string(), row.get(2)?);
         gene.insert("disease_id".to_string(), row.get(3)?);
         gene.insert("gene_symbol".to_string(), row.get(4)?);
+        gene.insert("disease_name".to_string(), row.get(5)?);
         Ok(gene)
     })?;
 
@@ -521,10 +523,11 @@ fn get_genes_for_term(db_path: String, term_id: String) -> Result<Vec<HashMap<St
 fn get_terms_for_gene(db_path: String, gene_id: String) -> Result<Vec<HashMap<String, String>>> {
     let conn = Connection::open(db_path)?;
     let mut stmt = conn.prepare(r#"
-        SELECT term_to_gene.*, genes.gene_symbol, terms.name
+        SELECT term_to_gene.*, genes.gene_symbol, terms.name, diseases.disease_name
         FROM term_to_gene
         JOIN genes ON term_to_gene.gene_id = genes.gene_id 
         LEFT JOIN terms ON term_to_gene.term_id = terms.term_id 
+        JOIN diseases ON term_to_gene.disease_id = diseases.disease_id
         WHERE term_to_gene.gene_id=?"#
     )?;
     
@@ -536,6 +539,7 @@ fn get_terms_for_gene(db_path: String, gene_id: String) -> Result<Vec<HashMap<St
         phen.insert("disease_id".to_string(), row.get(3)?);
         phen.insert("gene_symbol".to_string(), row.get(4)?);
         phen.insert("name".to_string(), row.get(5)?);
+        phen.insert("disease_name".to_string(), row.get(6)?);
         Ok(phen)
     })?;
 
