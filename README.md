@@ -29,3 +29,8 @@ Here we are using a container from the docker hub and running it with singularit
 
 **NOTE:** the server will expect this containerFolder to be `data` at the root of your container as shown in the example.
 **NOTE:** each new version needs to be built, tagged, and added to the docker hub. On CHPC stop the ongoing singularity container and run again with the new docker container.
+
+**UPDATE** If there is already .sif built you can run something like
+```
+singularity run --bind /ssd/emerson/pheno_matcher_be_rust/data/:/data pheno_matcher_be_1.3.sif
+```
