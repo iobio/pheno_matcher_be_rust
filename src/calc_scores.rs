@@ -1,12 +1,10 @@
 #![allow(unused_imports)]
 use std::collections::HashMap;
-use std::u32;
 use std::sync::Arc;
-use hpo::HpoTermId;
 use hpo::similarity::{Similarity, StandardCombiner, GroupSimilarity};
+use hpo::term::HpoGroup;
+use hpo::{Ontology, HpoSet};
 use serde::{Deserialize, Serialize, de::IntoDeserializer};
-use::hpo::{Ontology, HpoSet};
-use::hpo::term::HpoGroup;
 use crate::{custom_jaccard_ic, population};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

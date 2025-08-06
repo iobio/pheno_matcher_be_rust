@@ -1,34 +1,39 @@
 #![allow(unused_imports)]
 mod custom_jaccard_ic;
-mod calc_scores;
 mod population;
-use warp::{Filter, path, reply, Rejection, Reply, http::StatusCode, http::Response, hyper::Body};
+mod calc_scores;
+mod calc_simpheny_score;
+use warp::{Filter, path, reply, Rejection, Reply, http::StatusCode, http::Response, hyper::Body, cors};
 use std::sync::Arc;
+use std::collections::HashMap;
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize, de::IntoDeserializer};
-use std::collections::HashMap;
 use serde_json::Result as SerdeResult;
 use hpo::Ontology;
 
 #[tokio::main]
 async fn main() {
     // Overarching variables
+    let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
+    // let ontology = Arc::new(Ontology::from_binary("/Users/emerson/Documents/Code/pheno_matcher_be_rust/bin_hpo_file").unwrap()); //Development URL
+
+    // URLS PRODUCTION
     const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
     const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
     const DECIPHER_DATA_URL: &str = "/data/DecipherData.csv"; //Production URL
+    const GENE_LIST_URL: &str = "/data/gene_list.csv"; //Production URL
+    const TERMS_LIST_URL: &str = "/data/term_list.csv"; //Production URL
 
-    // #[allow(dead_code)]
+    // URLS DEVELOPMENT
     // const UDN_CSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/UdnPatients.csv"; //Development URL
     // const ORPHA_TSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/ORPHANETessentials.tsv"; //Development URL
     // const DECIPHER_DATA_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/DecipherData.csv"; //Development URL
+    // const GENE_LIST_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/gene_list.csv"; //Development URL
+    // const TERMS_LIST_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/term_list.csv"; //Development URL
 
     let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
     let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
     let deciper_population = Arc::new(population::create_deciper_population(DECIPHER_DATA_URL.to_string()));
-
-    let ontology = Arc::new(Ontology::from_binary("/bin_hpo_file").unwrap()); //Production URL
-    // let ontology = Arc::new(Ontology::from_binary("/Users/emerson/Documents/Code/pheno_matcher_be_rust/bin_hpo_file").unwrap()); //Development URL
-
 
     // The "/" path will return a generic greeting showing that the backend is running okay
     let home = path::end().map(|| {
@@ -381,6 +386,56 @@ async fn main() {
             }
     });
 
+    #[derive(Deserialize)]
+    struct SimphenyScoreRequest {
+        hit_terms: Vec<String>, // Expecting "HP:12345" format
+        gene_symbol: String,
+        sim_score: f32,
+        num_query_genes: u32,
+        num_hpo_terms: u32,
+        data_bg: String, // Background data for the score calculation
+    }
+
+    let simpheny_score = warp::path("simpheny_score")
+        .and(warp::post())
+        .and(warp::body::json())
+        .map(move |body: SimphenyScoreRequest| {
+            let ontology = Arc::clone(&ontology);
+
+            // Default values for the simulation
+            let iterations: u32 = 10000; // Number of iterations for the simulation
+            let terms_url: &str = TERMS_LIST_URL;
+            let genes_url: &str = GENE_LIST_URL;
+            // Terms need the prefix "HP:" removed and then parsed to u32
+            let terms_cleaned: Vec<u32> = body.hit_terms.iter()
+                .map(|term| term.replace("HP:", "").parse::<u32>().unwrap_or_else(|_| {
+                    eprintln!("Error parsing term ID: {}", term);
+                    0 // Default value in case of error
+                }))
+                .collect();
+            
+            // We aren't borrowing anything but the ontology because we don't need the other variables after this point
+            let simpheny_score: f64 = calc_simpheny_score::calc_simpheny_score(
+                &ontology,
+                terms_cleaned,
+                body.gene_symbol,
+                body.sim_score,
+                body.num_query_genes,
+                body.num_hpo_terms,
+                body.data_bg,
+                iterations,
+                terms_url,
+                genes_url,
+            );
+
+            let response = Response::builder()
+                .status(StatusCode::OK)
+                .header("Content-Type", "application/json")
+                .body(serde_json::to_string(&simpheny_score)
+                    .unwrap_or_else(|_| "Error serializing response".to_string()));
+            response
+        });
+
     //Combine all the routes and serve them
     let routes = home
         .or(check_db) // "/check_db"
@@ -399,9 +454,15 @@ async fn main() {
         .or(decipher_compare) // "/compare/decipher/{term_ids}" (comma separated)
         .or(get_orpha_population) // "/orpha_population"
         .or(get_udn_population)// "/udn_population"
-        .or(get_decipher_population); // "/decipher_population"
+        .or(get_decipher_population) // "/decipher_population"
+        .or(simpheny_score); // "/simpheny_score"
+    
+    let cors = cors()
+        .allow_any_origin()
+        .allow_methods(vec!["GET", "POST", "OPTIONS"])
+        .allow_headers(vec!["content-type"]);
 
-    warp::serve(routes)
+    warp::serve(routes.with(cors))
 //Non Production Server change to local host (docker requires the 0.0.0.0)
     .run(([127, 0, 0, 1], 8911))
         // .run(([0, 0, 0, 0], 8911))
