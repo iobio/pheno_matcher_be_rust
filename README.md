@@ -16,11 +16,11 @@ Currently there is a `amd64` tagged version that is compatable with our CHPC env
 
 ## Push the container to docker hub THEN --> Pull the Container
 
-`singularity pull --name pheno_matcher_be_v2.sif docker://emersonlebleu/pheno_matcher_be_rust-server:amd64v2.1`
+`singularity pull --name pheno_matcher_be_v2.1.sif docker://emersonlebleu/pheno_matcher_be_rust-server:amd64v2.1`
 
 ## Then Run
 
-`singularity run --bind /ssd/emerson/pheno_matcher_be_rust/data/:/data pheno_matcher_be_v2.sif`
+`singularity run --bind /ssd/emerson/pheno_matcher_be_rust/data/:/data pheno_matcher_be_v2.1.sif`
 
 ## Details
 
