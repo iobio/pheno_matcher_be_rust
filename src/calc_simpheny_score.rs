@@ -14,9 +14,18 @@ use csv::Reader;
 #[allow(unused_variables, unused_imports)]
 pub fn calc_simpheny_score(ontology: &Arc<Ontology>, hit_terms: Vec<u32>, hit_gene: String, sim_score: f32, num_query_genes: u32, num_hpo_terms: u32, data_bg: String, iterations: u32, terms_url: &str, genes_url: &str) -> f64 {
     let mut num_terms = num_hpo_terms;
-    // We will have a scale and dof for all of our background datasets
-    let udn_scale = 1.0703270447328037;
-    let udn_dof = 3.737175491999793;
+    
+    // If the data_bg is udn use udn if it is clinvar then use clinvar otherwise default to udn
+    let (scale, dof);
+    if data_bg == "udn" {
+            // UDN values
+        scale = 1.0703270447328037;
+        dof = 3.737175491999793;
+    } else if data_bg == "clinvar" {
+        // ClinVar values
+        scale = 1.0334745692972533;
+        dof = 3.8704387305049393;
+    } 
 
     // Grab all the gene_symbols from the database
     let mut gene_reader = Reader::from_path(genes_url).unwrap();
@@ -50,7 +59,7 @@ pub fn calc_simpheny_score(ontology: &Arc<Ontology>, hit_terms: Vec<u32>, hit_ge
     }
 
     let (pheno_p, gene_p) = calc_p_vals(ontology, hit_terms, hit_gene, sim_score, all_term_list, all_gene_list, num_terms, num_query_genes, iterations);
-    let combined_p = empirical_browns_method(pheno_p, gene_p, udn_scale, udn_dof);
+    let combined_p = empirical_browns_method(pheno_p, gene_p, scale, dof);
 
     -combined_p.log10() // Return the SimPheny score
 }

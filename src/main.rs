@@ -21,6 +21,7 @@ async fn main() {
     const UDN_CSV_URL: &str = "/data/UdnPatients.csv"; //Production URL
     const ORPHA_TSV_URL: &str = "/data/ORPHANETessentials.tsv"; //Production URL
     const DECIPHER_DATA_URL: &str = "/data/DecipherData.csv"; //Production URL
+    const CLINVAR_DATA_URL: &str = "/data/ClinVar.csv"; //Production URL
     const GENE_LIST_URL: &str = "/data/gene_list.csv"; //Production URL
     const TERMS_LIST_URL: &str = "/data/term_list.csv"; //Production URL
 
@@ -28,12 +29,14 @@ async fn main() {
     // const UDN_CSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/UdnPatients.csv"; //Development URL
     // const ORPHA_TSV_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/ORPHANETessentials.tsv"; //Development URL
     // const DECIPHER_DATA_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/DecipherData.csv"; //Development URL
+    // const CLINVAR_DATA_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/ClinVar.csv"; //Development URL
     // const GENE_LIST_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/gene_list.csv"; //Development URL
     // const TERMS_LIST_URL: &str = "/Users/emerson/Documents/Code/pheno_matcher_be_rust/data/term_list.csv"; //Development URL
 
     let udn_population = Arc::new(population::create_udn_population(UDN_CSV_URL.to_string()));
     let orpha_population = Arc::new(population::create_orpha_population(ORPHA_TSV_URL.to_string()));
     let deciper_population = Arc::new(population::create_deciper_population(DECIPHER_DATA_URL.to_string()));
+    let clinvar_population = Arc::new(population::create_clinvar_population(CLINVAR_DATA_URL.to_string()));
 
     // The "/" path will return a generic greeting showing that the backend is running okay
     let home = path::end().map(|| {
@@ -302,6 +305,22 @@ async fn main() {
         response
     });
 
+    let get_clinvar_population = warp::path!("clinvar_population").map(|| {
+        let clinvar_population = population::create_clinvar_population(CLINVAR_DATA_URL.to_string());
+        let json_clinvar_population = serde_json::to_string(&clinvar_population).unwrap();
+
+        let response = warp::http::Response::builder()
+            .status(StatusCode::OK)
+            .header("Access-Control-Allow-Origin", "*")
+            .header("Content-Type", "application/json")
+            .body(json_clinvar_population)  // Convert String directly to Body
+            .unwrap_or_else(|_| warp::http::Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Internal server error".into())
+                .unwrap());
+        response
+    });
+
     // Get a map of all of the similarity scores for a given set of terms
     let udn_compare = warp::path("compare_udn" )
         .and(warp::path::param())
@@ -334,23 +353,6 @@ async fn main() {
                         }
                     })
                     .collect();
-
-                let return_map = calc_scores::calc_scores(&ontology, param_u32, &population);
-                let return_map = serde_json::to_string(&return_map).unwrap();
-
-                let response = Response::builder()
-                    .status(StatusCode::OK)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .header("Content-Type", "application/json")
-                    .body(warp::hyper::Body::from(return_map))
-                    .unwrap_or_else(|_| warp::http::Response::builder()
-                        .status(StatusCode::INTERNAL_SERVER_ERROR)
-                        .body("Internal server error".into())
-                        .unwrap());
-                response
-            }
-    });
-
                 let return_map = calc_scores::calc_scores(&ontology, param_u32, &population);
                 let return_map = serde_json::to_string(&return_map).unwrap();
 
@@ -399,6 +401,7 @@ async fn main() {
                         }
                     })
                     .collect();
+
                 let return_map = calc_scores::calc_scores(&ontology, param_u32, &population);
                 let return_map = serde_json::to_string(&return_map).unwrap();
 
@@ -426,6 +429,56 @@ async fn main() {
                 let param = param.replace("%20", "");
                 let param_string = param.split(",").map(|s| s.to_string()).collect::<Vec<String>>();
                 // let param_u32 = param_string.iter().map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect::<Vec<u32>>();
+                let param_u32 = param_string
+                    .iter()
+                    .filter_map(|s| {
+                        let id_str = s.replace("HP:", "");
+                        match id_str.parse::<u32>() {
+                            Ok(id) => {
+                                // Check if the term exists in the ontology before including it
+                                if ontology.hpo(id).is_some() {
+                                    Some(id)
+                                } else {
+                                    eprintln!("Warning: HPO term {} not found in ontology", s);
+                                    None
+                                }
+                            }
+                            Err(_) => {
+                                eprintln!("Warning: Failed to parse HPO ID: {}", s);
+                                None
+                            }
+                        }
+                    })
+                    .collect();
+
+                let return_map = calc_scores::calc_scores(&ontology, param_u32, &population);
+                let return_map = serde_json::to_string(&return_map).unwrap();
+
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Content-Type", "application/json")
+                    .body(warp::hyper::Body::from(return_map))
+                    .unwrap_or_else(|_| warp::http::Response::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body("Internal server error".into())
+                        .unwrap());
+                response
+            }
+    });
+
+    // Get a map of all of the similarity scores for a given set of terms
+    let clinvar_compare = warp::path("compare_clinvar")
+        .and(warp::path::param())
+        .map({
+            let ontology = Arc::clone(&ontology);
+            let population = Arc::clone(&clinvar_population);
+
+            move |param: String| {
+                let param = param.replace("%20", "");
+                let param_string = param.split(",").map(|s| s.to_string()).collect::<Vec<String>>();
+                // let param_u32 = param_string.iter().map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect::<Vec<u32>>();
+
                 let param_u32 = param_string
                     .iter()
                     .filter_map(|s| {
@@ -545,9 +598,11 @@ async fn main() {
         .or(udn_compare) // "/compare/udn/{term_ids}" (comma separated)
         .or(orpha_compare) // "/compare/orpha/{term_ids}" (comma separated)
         .or(decipher_compare) // "/compare/decipher/{term_ids}" (comma separated)
+        .or(clinvar_compare) // "/compare/clinvar/{term_ids}" (comma separated)
         .or(get_orpha_population) // "/orpha_population"
         .or(get_udn_population)// "/udn_population"
         .or(get_decipher_population) // "/decipher_population"
+        .or(get_clinvar_population) // "/clinvar_population"
         .or(simpheny_score); // "/simpheny_score"
     
     let cors = cors()
