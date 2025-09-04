@@ -28,6 +28,7 @@ UdnPatients.csv
 ORPHANETessentials.tsv
 ORPHANETall.tsv
 DecipherData.csv
+ClinVar.csv
 
 #the target folder
 target/
