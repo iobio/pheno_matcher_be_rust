@@ -16,7 +16,8 @@ pub fn calc_simpheny_score(ontology: &Arc<Ontology>, hit_terms: Vec<u32>, hit_ge
     let mut num_terms = num_hpo_terms;
     
     // If the data_bg is udn use udn if it is clinvar then use clinvar otherwise default to udn
-    let (scale, dof);
+    let scale: f64;
+    let dof: f64;
     if data_bg == "udn" {
             // UDN values
         scale = 1.0703270447328037;
@@ -25,7 +26,11 @@ pub fn calc_simpheny_score(ontology: &Arc<Ontology>, hit_terms: Vec<u32>, hit_ge
         // ClinVar values
         scale = 1.0334745692972533;
         dof = 3.8704387305049393;
-    } 
+    } else {
+        // Default to UDN values if an invalid population is provided
+        scale = 1.0703270447328037;
+        dof = 3.737175491999793;
+    }
 
     // Grab all the gene_symbols from the database
     let mut gene_reader = Reader::from_path(genes_url).unwrap();
