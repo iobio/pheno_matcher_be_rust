@@ -26,7 +26,29 @@ pub fn calc_scores(ontology: &Arc<Ontology>, hpo_ids1: Vec<u32>, population: &Ar
     //Iterate through the population
     for (key, value) in population.iter() {
         //Create a group from the hpo_ids2 vector take the HP: off of the HPO ids and make into a u32
-        let hpo_ids2: Vec<u32> = value.get("Terms").unwrap().split("; ").map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect();
+        // let hpo_ids2: Vec<u32> = value.get("Terms").unwrap().split("; ").map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect();
+
+        let hpo_ids2: Vec<u32> = value.get("Terms").unwrap()
+            .split("; ")
+            .filter_map(|s| {
+                let id_str = s.replace("HP:", "");
+                match id_str.parse::<u32>() {
+                    Ok(id) => {
+                        // Check if the term exists in the ontology before including it
+                        if ontology.hpo(id).is_some() {
+                            Some(id)
+                        } else {
+                            eprintln!("Warning: HPO term {} not found in ontology", s);
+                            None
+                        }
+                    }
+                    Err(_) => {
+                        eprintln!("Warning: Failed to parse HPO ID: {}", s);
+                        None
+                    }
+                }
+            })
+            .collect();
         let hpo_group2 = HpoGroup::from(hpo_ids2);
         let hpo_set2 = HpoSet::new(&ontology, hpo_group2);
         //Calculate the similarity

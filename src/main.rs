@@ -312,7 +312,44 @@ async fn main() {
             move |param: String| {
                 let param = param.replace("%20", "");
                 let param_string = param.split(",").map(|s| s.to_string()).collect::<Vec<String>>();
-                let param_u32 = param_string.iter().map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect::<Vec<u32>>();
+                // let param_u32 = param_string.iter().map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect::<Vec<u32>>();
+                let param_u32 = param_string
+                    .iter()
+                    .filter_map(|s| {
+                        let id_str = s.replace("HP:", "");
+                        match id_str.parse::<u32>() {
+                            Ok(id) => {
+                                // Check if the term exists in the ontology before including it
+                                if ontology.hpo(id).is_some() {
+                                    Some(id)
+                                } else {
+                                    eprintln!("Warning: HPO term {} not found in ontology", s);
+                                    None
+                                }
+                            }
+                            Err(_) => {
+                                eprintln!("Warning: Failed to parse HPO ID: {}", s);
+                                None
+                            }
+                        }
+                    })
+                    .collect();
+
+                let return_map = calc_scores::calc_scores(&ontology, param_u32, &population);
+                let return_map = serde_json::to_string(&return_map).unwrap();
+
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Content-Type", "application/json")
+                    .body(warp::hyper::Body::from(return_map))
+                    .unwrap_or_else(|_| warp::http::Response::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body("Internal server error".into())
+                        .unwrap());
+                response
+            }
+    });
 
                 let return_map = calc_scores::calc_scores(&ontology, param_u32, &population);
                 let return_map = serde_json::to_string(&return_map).unwrap();
@@ -340,8 +377,28 @@ async fn main() {
             move |param: String| {
                 let param = param.replace("%20", "");
                 let param_string = param.split(",").map(|s| s.to_string()).collect::<Vec<String>>();
-                let param_u32 = param_string.iter().map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect::<Vec<u32>>();
-
+                // let param_u32 = param_string.iter().map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect::<Vec<u32>>();
+                let param_u32 = param_string
+                    .iter()
+                    .filter_map(|s| {
+                        let id_str = s.replace("HP:", "");
+                        match id_str.parse::<u32>() {
+                            Ok(id) => {
+                                // Check if the term exists in the ontology before including it
+                                if ontology.hpo(id).is_some() {
+                                    Some(id)
+                                } else {
+                                    eprintln!("Warning: HPO term {} not found in ontology", s);
+                                    None
+                                }
+                            }
+                            Err(_) => {
+                                eprintln!("Warning: Failed to parse HPO ID: {}", s);
+                                None
+                            }
+                        }
+                    })
+                    .collect();
                 let return_map = calc_scores::calc_scores(&ontology, param_u32, &population);
                 let return_map = serde_json::to_string(&return_map).unwrap();
 
@@ -368,7 +425,28 @@ async fn main() {
             move |param: String| {
                 let param = param.replace("%20", "");
                 let param_string = param.split(",").map(|s| s.to_string()).collect::<Vec<String>>();
-                let param_u32 = param_string.iter().map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect::<Vec<u32>>();
+                // let param_u32 = param_string.iter().map(|s| s.replace("HP:", "").parse::<u32>().unwrap()).collect::<Vec<u32>>();
+                let param_u32 = param_string
+                    .iter()
+                    .filter_map(|s| {
+                        let id_str = s.replace("HP:", "");
+                        match id_str.parse::<u32>() {
+                            Ok(id) => {
+                                // Check if the term exists in the ontology before including it
+                                if ontology.hpo(id).is_some() {
+                                    Some(id)
+                                } else {
+                                    eprintln!("Warning: HPO term {} not found in ontology", s);
+                                    None
+                                }
+                            }
+                            Err(_) => {
+                                eprintln!("Warning: Failed to parse HPO ID: {}", s);
+                                None
+                            }
+                        }
+                    })
+                    .collect();
 
                 let return_map = calc_scores::calc_scores(&ontology, param_u32, &population);
                 let return_map = serde_json::to_string(&return_map).unwrap();
@@ -407,11 +485,26 @@ async fn main() {
             let terms_url: &str = TERMS_LIST_URL;
             let genes_url: &str = GENE_LIST_URL;
             // Terms need the prefix "HP:" removed and then parsed to u32
-            let terms_cleaned: Vec<u32> = body.hit_terms.iter()
-                .map(|term| term.replace("HP:", "").parse::<u32>().unwrap_or_else(|_| {
-                    eprintln!("Error parsing term ID: {}", term);
-                    0 // Default value in case of error
-                }))
+            let terms_cleaned: Vec<u32> = body.hit_terms
+                .iter()
+                .filter_map(|s| {
+                    let id_str = s.replace("HP:", "");
+                    match id_str.parse::<u32>() {
+                        Ok(id) => {
+                            // Check if the term exists in the ontology before including it
+                            if ontology.hpo(id).is_some() {
+                                Some(id)
+                            } else {
+                                eprintln!("Warning: HPO term {} not found in ontology", s);
+                                None
+                            }
+                        }
+                        Err(_) => {
+                            eprintln!("Warning: Failed to parse HPO ID: {}", s);
+                            None
+                        }
+                    }
+                })
                 .collect();
             
             // We aren't borrowing anything but the ontology because we don't need the other variables after this point
@@ -463,9 +556,7 @@ async fn main() {
         .allow_headers(vec!["content-type"]);
 
     warp::serve(routes.with(cors))
-//Non Production Server change to local host (docker requires the 0.0.0.0)
     .run(([127, 0, 0, 1], 8911))
-        // .run(([0, 0, 0, 0], 8911))
         .await;
 }
 
@@ -474,8 +565,8 @@ async fn main() {
 //-------------
 
 fn get_db_path() -> String {
-    let db_path = String::from("/hpoAssociations/hpo.db"); //production
-    // let db_path = String::from("/Users/emerson/Documents/Code/pheno_matcher_be_rust/src/hpoAssociations/hpo.db"); //development
+    let db_path = String::from("/hpoAssociations/hpo.db"); //Production
+    // let db_path = String::from("/Users/emerson/Documents/Code/pheno_matcher_be_rust/src/hpoAssociations/hpo.db"); //Development
     db_path
 }
 
